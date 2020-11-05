@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "delphi/proto/delphi.proto";
+
+service AdminService {
+  rpc Reset(ResetRequest) returns (google.protobuf.Empty);
+  rpc GetLastTrainedVersion(SearchId) returns (google.protobuf.Int32Value);
+}
+
+message ResetRequest {
+  SearchId searchId = 1;
+  bool trainOnly = 2;
+}

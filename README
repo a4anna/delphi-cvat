@@ -1,0 +1,6 @@
+export DELPHI=$PWD
+export ROOT="/srv/diamond/exp"
+export CVAT_USER="shilpag"
+export CVAT_PASS="cloudlet"
+export PYTHONPATH=$PWD:$PYTHONPATH
+python delphi/delphi_server.py config.yml

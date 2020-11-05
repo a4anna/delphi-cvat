@@ -1,0 +1,17 @@
+debug: true
+port: 6177
+data_loop: 3
+root_dir: # GIVE DATA DIR 
+selector:
+  threshold:
+    threshold: 0.60
+cvat:
+  host: "localhost"
+  port: 8080
+  user: ${CVAT_USER}
+  password: ${CVAT_PASS}
+  tasks:
+    pending: 3
+    length: 50
+    time: 600
+

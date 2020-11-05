@@ -1,0 +1,87 @@
+syntax = "proto3";
+
+import "google/protobuf/any.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+import "delphi/proto/delphi.proto";
+
+service InternalService {
+   rpc GetExamples(GetExamplesRequest) returns (stream ExampleMetadata);
+   rpc GetExample(GetExampleRequest) returns (google.protobuf.BytesValue);
+   rpc TrainModel(TrainModelRequest) returns (google.protobuf.Empty);
+   rpc StageModel(StageModelRequest) returns (google.protobuf.Empty);
+   rpc ValidateTestResults(ValidateTestResultsRequest) returns (google.protobuf.Empty);
+   rpc SubmitTestResults(stream SubmitTestRequest) returns (google.protobuf.Empty);
+   rpc PromoteModel(PromoteModelRequest) returns (google.protobuf.Empty);
+   rpc DiscardModel(DiscardModelRequest) returns (google.protobuf.Empty);
+   rpc CheckBandwidth(google.protobuf.BytesValue) returns (google.protobuf.BytesValue);
+   rpc MessageInternal(InternalMessage) returns (google.protobuf.Any);
+}
+
+message GetExamplesRequest {
+  SearchId searchId = 1;
+  ExampleSet exampleSet = 2;
+  int32 nodeIndex = 3;
+}
+
+message ExampleMetadata {
+  string label = 1;
+  string key = 2;
+}
+
+message GetExampleRequest {
+  SearchId searchId = 1;
+  ExampleSet exampleSet = 2;
+  string label = 3;
+  string key = 4;
+}
+
+message TrainModelRequest {
+  SearchId searchId = 1;
+  int32 trainerIndex = 2;
+}
+
+message StageModelRequest {
+  SearchId searchId = 1;
+  int32 version = 2;
+  int32 trainerIndex = 3;
+  bytes content = 4;
+}
+
+message ValidateTestResultsRequest {
+  SearchId searchId = 1;
+  int32 version = 2;
+}
+
+message SubmitTestRequest {
+  oneof value {
+    SubmitTestVersion version = 1;
+    TestResult result = 2;
+  }
+}
+
+message SubmitTestVersion {
+  SearchId searchId = 1;
+  int32 version = 2;
+}
+
+message TestResult {
+  string label = 1;
+  double score = 2;
+}
+
+message PromoteModelRequest {
+  SearchId searchId = 1;
+  int32 version = 2;
+}
+
+message DiscardModelRequest {
+  SearchId searchId = 1;
+  int32 version = 2;
+}
+
+message InternalMessage {
+  SearchId searchId = 1;
+  int32 trainerIndex = 2;
+  google.protobuf.Any message = 3;
+}

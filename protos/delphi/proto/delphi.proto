@@ -1,0 +1,289 @@
+syntax = "proto3";
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/wrappers.proto";
+
+service DelphiService {
+  rpc CreateSearch(CreateSearchRequest) returns (google.protobuf.Empty);
+  rpc StartSearch(SearchId) returns (google.protobuf.Empty);
+  rpc PauseSearch(SearchId) returns (google.protobuf.Empty);
+  rpc RestartSearch(SearchId) returns (google.protobuf.Empty);
+  rpc StopSearch(SearchId) returns (google.protobuf.Empty);
+  rpc GetSearches(google.protobuf.Empty) returns (stream SearchInfo);
+
+  rpc GetResults(SearchId) returns (stream InferResult);
+  rpc GetObjects(GetObjectsRequest) returns (stream DelphiObject);
+  rpc GetMessages(stream Message) returns (stream Message);
+
+  rpc Infer(stream InferRequest) returns (stream InferResult);
+  rpc AddLabeledExamples(stream LabeledExampleRequest) returns (google.protobuf.Empty);
+  rpc AddLabeledExampleIds(AddLabeledExampleIdsRequest) returns (google.protobuf.Empty);
+
+  rpc GetSearchStats(SearchId) returns (SearchStats);
+  rpc GetModelStats(SearchId) returns (ModelStats);
+  rpc ImportModel(ImportModelRequest) returns (google.protobuf.Empty);
+  rpc ExportModel(SearchId) returns (ModelArchive);
+}
+
+message Message {
+  string message = 1;
+}
+
+message GetObjectsRequest {
+  Dataset dataset = 1;
+  repeated string objectIds = 2;
+  repeated string attributes = 3;
+}
+
+message InferRequest {
+  oneof value {
+    SearchId searchId = 1;
+    DelphiObject object = 2;
+  }
+}
+
+message DelphiObject {
+  string objectId = 1;
+  bytes content = 2;
+  map<string, bytes> attributes = 3;
+}
+
+message InferResult {
+  string objectId = 1;
+  string label = 2;
+  double score = 3;
+  int32 modelVersion = 4;
+  map<string, bytes> attributes = 5;
+}
+
+message LabeledExampleRequest {
+  oneof value {
+    SearchId searchId = 1;
+    LabeledExample example = 2;
+  }
+}
+
+message LabeledExample {
+  string label = 1;
+  ExampleSetWrapper exampleSet = 2;
+  oneof value {
+    bytes content = 3;
+    string path = 4;
+  }
+}
+
+enum ExampleSet {
+  LABELED = 0;
+  TEST = 1;
+}
+
+message ExampleSetWrapper {
+  ExampleSet value = 1;
+}
+
+message SearchId {
+  string value = 1;
+}
+
+message AddLabeledExampleIdsRequest {
+  SearchId searchId = 1;
+  map<string, string> examples = 2;
+}
+
+message SearchStats {
+  int64 totalObjects = 1;
+  int64 processedObjects = 2;
+  int64 droppedObjects = 3;
+  google.protobuf.Int64Value passedObjects = 4;
+  int64 falseNegatives = 5;
+}
+
+message ModelStats {
+  int64 testExamples = 1;
+  double auc = 2;
+  ModelMetrics validationMetrics = 3;
+  ModelMetrics idealMetrics = 4;
+  double bestThreshold = 5;
+  repeated double precisions = 6;
+  repeated double recalls = 7;
+  repeated double thresholds = 8;
+  int32 version = 9;
+}
+
+message ModelMetrics {
+  int64 truePositives = 1;
+  int64 falsePositives = 2;
+  int64 falseNegatives = 3;
+  double precision = 4;
+  double recall = 5;
+  double f1Score = 6;
+}
+
+message ImportModelRequest {
+  SearchId searchId = 1;
+  int32 version = 2;
+  bytes content = 3;
+}
+
+message ModelArchive {
+  int32 version = 1;
+  bytes content = 2;
+}
+
+message CreateSearchRequest {
+  SearchId searchId = 1;
+  repeated string nodes = 2;
+  int32 nodeIndex = 3;
+  repeated ModelConditionConfig trainStrategy = 4;
+  RetrainPolicyConfig retrainPolicy = 5;
+  bool onlyUseBetterModels = 6;
+  Dataset dataset = 7;
+  SelectorConfig selector = 8;
+  bool hasInitialExamples = 9;
+  string metadata = 10;
+}
+
+message ModelConditionConfig {
+  oneof value {
+    ExamplesPerLabelConditionConfig examplesPerLabel = 1;
+    TestAucConditionConfig testAuc = 2;
+    BandwidthConditionConfig bandwidth = 3;
+  }
+}
+
+message ExamplesPerLabelConditionConfig {
+  int32 count = 1;
+  ModelConfig model = 2;
+}
+
+message TestAucConditionConfig {
+  double threshold = 1;
+  ModelConfig model = 2;
+}
+
+message BandwidthConditionConfig {
+  double thresholdMbps = 1;
+  int32 refreshSeconds = 2;
+  ModelConfig model = 3;
+}
+
+message ModelConfig {
+  oneof value {
+    SVMConfig svm = 1;
+    FastMPNCOVConfig fastMPNCOV = 2;
+    WSDANConfig wsdan = 3;
+  }
+}
+
+message SVMConfig {
+  SVMMode mode = 1;
+  string featureExtractor = 2;
+  bool probability = 3;
+  bool linearOnly = 4;
+}
+
+enum SVMMode {
+    MASTER_ONLY = 0;
+    DISTRIBUTED = 1;
+    ENSEMBLE = 2;
+}
+
+message FastMPNCOVConfig {
+  bool distributed = 1;
+  google.protobuf.Int32Value freeze = 2;
+}
+
+message WSDANConfig {
+  bool distributed = 1;
+  google.protobuf.Int32Value freeze = 2;
+  bool visualize = 3;
+}
+
+message RetrainPolicyConfig {
+  oneof value {
+    AbsoluteThresholdPolicyConfig absolute = 1;
+    PercentageThresholdPolicyConfig percentage = 2;
+  }
+}
+
+message AbsoluteThresholdPolicyConfig {
+  int32 threshold = 1;
+  bool onlyPositives = 2;
+}
+
+message PercentageThresholdPolicyConfig {
+  double threshold = 1;
+  bool onlyPositives = 2;
+}
+
+message Dataset {
+  oneof value {
+    DiamondDataset diamond = 1;
+    DirectoryDataset directory = 2;
+  }
+}
+
+message DiamondDataset {
+  repeated Filter filters = 1;
+  repeated string hosts = 2;
+  repeated string cookies = 3;
+  repeated string attributes = 4;
+}
+
+message DirectoryDataset {
+  string name = 1;
+  int32 loop  = 2;
+}
+
+message Filter {
+  bytes code = 1;
+  repeated string dependencies = 2;
+  repeated string arguments = 3;
+  string name = 4;
+  double minScore = 5;
+  double maxScore = 6;
+  bytes blob = 7;
+}
+
+message SelectorConfig {
+  oneof value {
+    TopKSelectorConfig topk = 1;
+    ThresholdConfig threshold = 2;
+  }
+}
+
+message TopKSelectorConfig {
+  int32 k = 1;
+  int32 batchSize = 2;
+  ReexaminationStrategyConfig reexaminationStrategy = 3;
+}
+
+message ThresholdConfig {
+  double threshold = 1;
+  ReexaminationStrategyConfig reexaminationStrategy = 3;
+}
+
+message ReexaminationStrategyConfig {
+  oneof value {
+    NoReexaminationStrategyConfig none = 1;
+    TopReexaminationStrategyConfig top = 2;
+    FullReexaminationStrategyConfig full = 3;
+  }
+}
+
+message NoReexaminationStrategyConfig {
+  int32 k = 1;
+}
+
+message TopReexaminationStrategyConfig {
+  int32 k = 1;
+}
+
+message FullReexaminationStrategyConfig {
+}
+
+message SearchInfo {
+  SearchId searchId = 1;
+  string metadata = 2;
+}
+
