@@ -1,6 +1,20 @@
 # delphi-cvat
 Integrating Delphi and CVAT
 
+## Decription 
+Delphi is an interactive system that performs bandwidth-efficient
+labeling for low-baserate targets. In this repository, we integrate Delphi with
+[CVAT](https://github.com/openvinotoolkit/cvat) to prune negatives
+from a given image directory.
+
+Delphi creates the intial filter from a set of labeled data
+provided by the user. A minimum of 5 images per label (positive &
+negative) are required to start the filter. Delphi achieves
+bandwidth effiecieny through early-discard and iterative
+improvement of classifiers. When the user marks a task as
+"completed" in CVAT, Delphi retrieves the annotation file from CVAT
+to expand the labeled set and re-train the classifier.
+
 ## Environment setup
 This code has been tested on Ubuntu 16.04, Python 3.7, Pytorch 1.5, CUDA 10.2, GTX 1080 GPUs
 
@@ -21,19 +35,20 @@ export CVAT_PASS={CVAT-PASSWORD}
 export PYTHONPATH=$DELPHI:$PYTHONPATH
 ```
 ## Data Directory setup
-+data-root  
+```
++data-root/  
   +labeled/  
-   +0/ # labeled negative image ddirectory  
-    -000.jpg  
-    -501.jpg  
-    -\*.jpg     
-   +1/ # labeled positive image ddirectory  
-    -011.jpg  
-    -203.jpg  
-    -\*.jpg  
+    +0/ # labeled negative image ddirectory  
+      -000.jpg  
+      -501.jpg  
+      -*.jpg     
+    +1/ # labeled positive image ddirectory  
+      -011.jpg  
+      -203.jpg  
+      -*.jpg  
   +unlabeled/  
-   -\*.jpg  
-   
+    -*.jpg  
+```   
 ## Generate proto files
 ```
  cd $DELPHI
