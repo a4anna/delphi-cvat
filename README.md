@@ -12,6 +12,7 @@ export DELPHI=$PWD
 - Setup python environment
 ```
 conda env create -f environment.yml
+conda activate delphi
 ```
 - Set environment variable
 ```
