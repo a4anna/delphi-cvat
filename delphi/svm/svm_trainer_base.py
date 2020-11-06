@@ -1,5 +1,6 @@
 import io
 import multiprocessing as mp
+import numpy as np
 import pickle
 import queue
 import threading
@@ -70,6 +71,21 @@ class SVMTrainerBase(ModelTrainerBase):
         bytes.seek(0)
         return SVMModel(pickle.load(bytes), model_version, self.feature_provider, self.probability)
 
+    def _get_balanced(self, labels, examples):
+        unique_labels  = np.unique(labels)
+        example_ids_per_label = [np.where(labels==l)[0] for l in unique_labels]
+        example_count = [len(ids) for ids in example_ids_per_label]
+        min_count = min(example_count)
+        assert min_count > 0, "Number of training example is less than 1"
+        keep_ids = []
+        for example_ids in example_ids_per_label:
+            keep_ids.extend(np.random.choice(example_ids, min_count, replace=False))
+
+        logger.debug("Training: NUM Labels {}, Count per Label {}, Total training examples {}".format(
+            len(unique_labels), min_count, len(keep_ids)
+        ))
+        return labels[keep_ids], examples[keep_ids]
+
     def get_best_model(self, train_dir: Path, param_grid: List[Dict[str, Any]]) -> \
             Tuple[Union[LinearSVC, SVC, CalibratedClassifierCV], Any, float]:
         features = self._get_example_features(train_dir)
@@ -80,6 +96,10 @@ class SVMTrainerBase(ModelTrainerBase):
             for feature_vector in features[label]:
                 flattened_examples.append(feature_vector)
                 flattened_labels.append(label)
+
+        flattened_labels, flattened_examples = np.array(flattened_labels), np.array(flattened_examples)
+        flattened_labels, flattened_examples = self._get_balanced(flattened_labels,
+                                                    flattened_examples)
 
         with parallel_backend('threading'):
             grid_search = GridSearchCV(

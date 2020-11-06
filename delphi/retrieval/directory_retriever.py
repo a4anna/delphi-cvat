@@ -18,7 +18,7 @@ class DirectoryRetriever(Retriever):
         self._loop = loop if loop > 0 else 1
         self._start_event = threading.Event()
         self._final_stats = None
-        self._obj_retriever = self.get_directory()
+        # self._obj_retriever = self.get_directory()
 
     def _fetch_files(self):
         extensions = ('*.jpg', '*.png', '*.jpeg')
@@ -34,26 +34,17 @@ class DirectoryRetriever(Retriever):
     def stop(self) -> None:
         self._start_event.clear()
 
-    def get_directory(self) -> Iterable[ObjectProvider]:
-        for loop in range(self._loop):
-            logger.info("Dataset {} Loop Number {}".format(self._dataset.name, loop))
-            paths = self._fetch_files()
-            for path in paths:
-                content = b''
-                with open(path, "rb") as f:
-                    content = f.read()
-                yield ObjectProvider(path, content, SimpleAttributeProvider({}), False)
-        logger.info("Dataset Completed!")
-
     def get_objects(self) -> Iterable[ObjectProvider]:
-        for loop in range(self._loop):
-            logger.debug("Dataset {} Loop Number {}".format(self._dataset.name, loop))
+        loop = 0
+        while True:
+            loop += 1
             paths = self._fetch_files()
             for path in paths:
-                content = b''
+                if not os.path.exists(path):
+                    continue
                 with open(path, "rb") as f:
                     content = f.read()
-                yield ObjectProvider(path, content, SimpleAttributeProvider({}), False)
+                    yield ObjectProvider(path, content, SimpleAttributeProvider({}), False)
         logger.info("Dataset Completed!")
         # try:
         #     while True:
