@@ -42,6 +42,7 @@ class DelphiServer(object):
         delphi_pb2_grpc.add_DelphiServiceServicer_to_server(self.delphi_servicer, self.server)
         internal_pb2_grpc.add_InternalServiceServicer_to_server(InternalServicer(manager), self.server)
         admin_pb2_grpc.add_AdminServiceServicer_to_server(AdminServicer(manager), self.server)
+        signal.signal(signal.SIGINT, self.stop)
 
     @log_exceptions
     def start(self):
@@ -49,7 +50,7 @@ class DelphiServer(object):
         self.server.start()
         self.server.wait_for_termination()
 
-    def stop(self):
+    def stop(self, *args):
         self.delphi_servicer.stop()
         self.server.stop(NUM_SEC_WAIT)
         pid = os.getpid()

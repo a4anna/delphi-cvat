@@ -36,6 +36,7 @@ class CvatClient(object):
         logger.debug("Labeled Directory {}".format(self.train_dir))
         self.search_id = SearchId(value=str(uuid.uuid4()))
         self.result_manager = ResultManager(self.stub, self.search_id, self.train_dir, config['cvat'])
+        signal.signal(signal.SIGINT, self.stop)
 
     def create_search(self):
         nodes = ['localhost']
@@ -113,7 +114,7 @@ class CvatClient(object):
             self.stop()
             raise e
 
-    def stop(self):
+    def stop(self, *args):
         logger.info("Stop called")
         self.stub.StopSearch(self.search_id)
         time.sleep(5)
