@@ -293,8 +293,9 @@ class Search(DataManagerContext, ModelTrainerContext):
         logger.info('Starting evaluation with model version {}'.format(starting_version))
 
         for retriever_object in self.retriever.get_objects():
-            while self._is_paused(): # Wait till restart
-                pass
+
+            if self._is_paused(): # Wait till restart
+                return
 
             with self._model_lock:
                 version = self._model.version if self._model is not None else None

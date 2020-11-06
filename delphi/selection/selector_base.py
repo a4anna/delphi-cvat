@@ -43,6 +43,8 @@ class SelectorBase(Selector):
     def new_model(self, model: Optional[Model]) -> None:
         with self._model_lock:
             self._model_present = model is not None
+            with self.result_queue.mutex:
+                self.result_queue = queue.Queue(maxsize=100)
 
         self.new_model_inner(model)
 

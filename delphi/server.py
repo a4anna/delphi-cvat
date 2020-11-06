@@ -1,3 +1,5 @@
+import os
+import signal
 import sys
 import threading
 import traceback
@@ -35,9 +37,9 @@ class DelphiServer(object):
         feature_cache = FSFeatureCache(Path(config['root_dir'])/"features") # NoopFeatureCache()
         self.server.add_insecure_port('0.0.0.0:{}'.format(port))
 
-        delphi_servicer = DelphiServicer(manager, Path(config['root_dir']),
+        self.delphi_servicer = DelphiServicer(manager, Path(config['root_dir']),
                                          feature_cache, port)
-        delphi_pb2_grpc.add_DelphiServiceServicer_to_server(delphi_servicer, self.server)
+        delphi_pb2_grpc.add_DelphiServiceServicer_to_server(self.delphi_servicer, self.server)
         internal_pb2_grpc.add_InternalServiceServicer_to_server(InternalServicer(manager), self.server)
         admin_pb2_grpc.add_AdminServiceServicer_to_server(AdminServicer(manager), self.server)
 
@@ -48,4 +50,8 @@ class DelphiServer(object):
         self.server.wait_for_termination()
 
     def stop(self):
+        self.delphi_servicer.stop()
         self.server.stop(NUM_SEC_WAIT)
+        pid = os.getpid()
+        os.kill(pid, signal.SIGKILL)
+

@@ -267,6 +267,25 @@ class DelphiServicer(DelphiServiceServicer):
             logger.exception(e)
             raise e
 
+    def StopSearch(self, request: SearchId, context: grpc.ServicerContext) -> Empty:
+        try:
+            logger.info('Stopping search with id {}'.format(request.value))
+            search = self._manager.remove_search(request)
+            search.stop()
+            return Empty()
+        except Exception as e:
+            logger.exception(e)
+            raise e
+
+    def stop(self) -> None:
+        try:
+            for search_id, _ in self._manager.get_searches():
+                search = self._manager.remove_search(search_id)
+                search.stop()
+        except Exception as e:
+            logger.exception(e)
+            raise e
+
     def _get_retrain_policy(self, retrain_policy: RetrainPolicyConfig) -> RetrainPolicy:
         if retrain_policy.HasField('absolute'):
             return AbsoluteThresholdPolicy(retrain_policy.absolute.threshold, retrain_policy.absolute.onlyPositives)

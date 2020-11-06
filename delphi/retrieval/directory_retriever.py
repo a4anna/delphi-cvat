@@ -46,7 +46,6 @@ class DirectoryRetriever(Retriever):
         logger.info("Dataset Completed!")
 
     def get_objects(self) -> Iterable[ObjectProvider]:
-        self._start_event.wait()
         for loop in range(self._loop):
             logger.debug("Dataset {} Loop Number {}".format(self._dataset.name, loop))
             paths = self._fetch_files()

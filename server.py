@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import os
 import signal
 import sys
 import logging
@@ -44,7 +45,9 @@ def main():
         server.start()
     except (KeyboardInterrupt, Exception):
         server.stop()
-        sys.exit(1)
+        time.sleep(10)
+        pid = os.getpid()
+        os.kill(pid, signal.SIGKILL)
 
 
 if __name__ == '__main__':
