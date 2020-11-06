@@ -1,5 +1,4 @@
 # delphi-cvat
-Integrating Delphi and CVAT
 
 ## Decription 
 Delphi is an interactive system that performs bandwidth-efficient
@@ -14,6 +13,14 @@ bandwidth effiecieny through early-discard and iterative
 improvement of classifiers. When the user marks a task as
 "completed" in CVAT, Delphi retrieves the annotation file from CVAT
 to expand the labeled set and re-train the classifier.
+
+This is a developing project.
+
+## System Architecture
+<p align="center">
+  <img src="delphi-arch.png", alt="Delphi-CVAT Architecture">
+</p>
+
 
 ## Environment setup
 This code has been tested on Ubuntu 16.04, Python 3.7, Pytorch 1.5, CUDA 10.2, GTX 1080 GPUs
@@ -34,7 +41,7 @@ export CVAT_USER={CVAT-USERNAME}
 export CVAT_PASS={CVAT-PASSWORD}
 export PYTHONPATH=$DELPHI:$PYTHONPATH
 ```
-## Data Directory setup
+## Data Directory Structure
 ```
 +data-root/  
   +labeled/  
@@ -54,10 +61,14 @@ export PYTHONPATH=$DELPHI:$PYTHONPATH
  cd $DELPHI
  python generate_proto.py
 ```
-## Run
+## How to Run
 
-#### Launch OpenCV CVAT
+#### Launch CVAT  
+Instructions on how to install and run CVAT can be found [here](https://github.com/openvinotoolkit/cvat/blob/develop/cvat/apps/documentation/installation.md).   
+*Note: Currently, we only support "Tag Annotation".*
+
 #### Modify config.yml
+
 #### Start Delphi 
 ```
 ./run.sh
