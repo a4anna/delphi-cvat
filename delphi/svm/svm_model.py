@@ -130,7 +130,7 @@ class SVMModel(Model):
             if len(batch) > 0:
                 self._process_batch(batch, feature_queue)
 
-            logger.info('{} cached examples, {} new examples preprocessed'.format(cached, uncached))
+            # logger.info('{} cached examples, {} new examples preprocessed'.format(cached, uncached))
             feature_queue.put(None)
 
         threading.Thread(target=process_uncached, name='process-uncached-model').start()
@@ -177,7 +177,9 @@ class SVMModel(Model):
                 yield ResultProvider(providers[i].id, label, score, self.version, providers[i].attributes,
                                      providers[i].gt)
 
-        logger.info('{} examples scored'.format(scored))
+        # logger.info('{} examples scored'.format(scored))
+        if item is None:
+            return None
 
     # provider, image, key -> provider, vector
     def _process_batch(self, items: List[Tuple[ObjectProvider, torch.Tensor, str]], feature_queue: queue.Queue) -> None:

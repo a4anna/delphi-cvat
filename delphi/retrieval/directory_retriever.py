@@ -35,9 +35,8 @@ class DirectoryRetriever(Retriever):
         self._start_event.clear()
 
     def get_objects(self) -> Iterable[ObjectProvider]:
-        loop = 0
-        while True:
-            loop += 1
+        for loop in range(self._loop):
+            logger.debug("Dataset Loop {}".format(loop))
             paths = self._fetch_files()
             for path in paths:
                 if not os.path.exists(path):
@@ -46,8 +45,3 @@ class DirectoryRetriever(Retriever):
                     content = f.read()
                     yield ObjectProvider(path, content, SimpleAttributeProvider({}), False)
         logger.info("Dataset Completed!")
-        # try:
-        #     while True:
-        #         yield next(self._obj_retriever)
-        # except StopIteration:
-        #     yield ObjectProvider('', b'', SimpleAttributeProvider({}), False)

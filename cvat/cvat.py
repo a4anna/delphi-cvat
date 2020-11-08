@@ -20,10 +20,13 @@ class CLI():
         url = self.api.tasks_id_data(task_id)
         data = {}
         files ={}
-        for i, f in enumerate(resources):
+        resources = [f for f in resources if os.path.exists(f)]
+        count = 0
+        for f in resources:
             if os.path.exists(f):
                 try:
-                    files['client_files[{}]'.format(i)] = open(f, 'rb')
+                    files['client_files[{}]'.format(count)] = open(f, 'rb')
+                    count += 1
                 except FileNotFoundError:
                     continue
         data['image_quality'] = 50

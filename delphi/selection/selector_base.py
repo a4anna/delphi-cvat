@@ -11,7 +11,7 @@ from delphi.selection.selector import Selector
 class SelectorBase(Selector):
 
     def __init__(self):
-        self.result_queue = queue.Queue(maxsize=100)
+        self.result_queue = queue.Queue(maxsize=20)
         self.stats_lock = threading.Lock()
         self.items_processed = 0
 
@@ -43,8 +43,6 @@ class SelectorBase(Selector):
     def new_model(self, model: Optional[Model]) -> None:
         with self._model_lock:
             self._model_present = model is not None
-            with self.result_queue.mutex:
-                self.result_queue = queue.Queue(maxsize=100)
 
         self.new_model_inner(model)
 

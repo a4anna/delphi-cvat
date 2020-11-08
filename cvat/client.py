@@ -122,16 +122,17 @@ class CvatClient(object):
         pid = os.getpid()
         os.kill(pid, signal.SIGKILL)
 
-
     def _result_thread(self):
         while True:
-            if (self.result_manager.tasks_lock._value == 0):
-                self.stub.PauseSearch(self.search_id)
-                while(self.result_manager.tasks_lock._value == 0):
-                    pass
-                self.stub.RestartSearch(self.search_id)
             for result in self.stub.GetResults(self.search_id):
-                self.result_manager.add(result.objectId)
+                if (self.result_manager.tasks_lock._value == 0):
+                    self.stub.PauseSearch(self.search_id)
+                    while(self.result_manager.tasks_lock._value == 0):
+                        pass
+                    self.stub.RestartSearch(self.search_id)
+                if not result:
+                    break
+                self.result_manager.add((result.objectId, result.modelVersion))
 
             if not self.result_manager.running:
                 self.stop()

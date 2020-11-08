@@ -42,7 +42,6 @@ class Search(DataManagerContext, ModelTrainerContext):
     def __init__(self, id: SearchId, node_index: int, nodes: List[DelphiStub], retrain_policy: RetrainPolicy,
                  only_use_better_models: bool, root_dir: Path, port: int, retriever: Retriever, selector: Selector,
                  has_initial_examples: bool):
-        logger.info("Search init called")
         self._id = id
         self._node_index = node_index
         self._nodes = nodes
@@ -315,9 +314,11 @@ class Search(DataManagerContext, ModelTrainerContext):
 
             while True:
                 for result in self.infer(self._objects_for_model_version()):
-                    self.selector.add_result(result)
+                    if result is None:
+                        break
                     if self._abort_event.is_set():
                         return
+                    self.selector.add_result(result)
         finally:
             self.retriever.stop()
             self.selector.finish()

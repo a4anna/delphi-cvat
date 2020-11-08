@@ -54,12 +54,14 @@ class ResultManager(object):
 
         self.pending_tasks = {}
         self.finished_ids = set()
+        self.seen_results = set()
         self.total_tasks = max(int(task_config.get('pending', '3')), 1)
+        self.max_length = self.total_tasks * self.results_len
         self.curr_task_id = 0
 
         self.results_lock = threading.Lock()
         self.train_lock = threading.Lock()
-        self.tasks_lock = threading.Semaphore(self.total_tasks)
+        self._tasks_lock = threading.Semaphore(self.total_tasks)
 
         self.running = True
 
@@ -72,57 +74,84 @@ class ResultManager(object):
         self._result_check = RepeatedTimer(2, self._check_results)
         self.time_start = time.time()
         self.terminate_counter = 0
+        self.termination_limit = 3
 
+    def on_running(func):
+        def wrapper(self, *args, **kwargs):
+            if self.running:
+                return func(self, *args, **kwargs)
+        return wrapper
+
+    def is_full(self):
+        if len(self.results) >= self.max_length:
+            return True
+        return False
+
+    @on_running
     def add(self, result):
         with self.results_lock:
-            self.results.append(result)
+            while self.is_full():
+                continue
+            result_id = result[0]
+            if os.path.basename(result_id) not in self.seen_results:
+                self.results.append(result)
 
+    @on_running
     def _check_length(self):
-        if not self.results:
-            return
         with self.results_lock:
             if ((len(self.results) < self.results_len) and
                 (round(time.time() - self.time_start) < self.results_wait)):
                 return
             self._create_task()
-        if self.terminate_counter > 2:
+        if self.terminate_counter >= self.termination_limit:
             self.running = False
 
+    def all_task_locks_free(self):
+        return self._tasks_lock._value == self.total_tasks
 
+    def all_task_locks_acquired(self):
+        return self._tasks_lock._value == 0
+
+    @on_running
     def _create_task(self):
-        self.time_start = time.time()
-        if not self.running or not self.results:
-            self.terminate_counter += 1
+        if not self.results:
+            time_lapsed = round(time.time() - self.time_start)
+            if time_lapsed > self.results_wait:
+                self.terminate_counter += 1
+                logger.debug("Waiting to terminate {}/{}".format(
+                              self.terminate_counter, self.termination_limit))
             return
-        self.tasks_lock.acquire()
+        self._tasks_lock.acquire()
+        task_results = self.results[:self.results_len]
+        self.results = self.results[self.results_len:]
         try:
-            task_results = list(sorted(self.results[:self.results_len]))
-            if not len(task_results):
-                return
+            result_ids, versions = zip(*task_results)
+            result_ids = sorted(set(result_ids))
+            model_version = min(versions)
             self.curr_task_id += 1
-            self.results = self.results[self.results_len:]
-            model_version = self.stub.GetModelStats(self.search_id).version
             task_name = f"task-{self.curr_task_id}-model-{model_version}"
+            result_ids = [p for p in result_ids if os.path.exists(p)
+                            and (os.path.basename(p) not in self.seen_results)]
+
+            [self.seen_results.add(os.path.basename(p)) for p in result_ids]
+            if not result_ids:
+                self.terminate_counter += 1
+                return
             with self.train_lock:
-                task_results = [p for p in task_results if os.path.exists(p)]
-                if not task_results:
-                    self.terminate_counter += 1
-                    return
-                task_id = self.cli.tasks_create(task_name, self.labels, task_results)
-                self.pending_tasks[task_id] = task_results
+                task_id = self.cli.tasks_create(task_name, self.labels, result_ids)
+                self.pending_tasks[task_id] = result_ids
+            self.time_start = time.time()
         except (requests.exceptions.HTTPError,
                 requests.exceptions.ConnectionError,
                 requests.exceptions.RequestException) as e:
+            self._tasks_lock.release()
             logger.critical(e)
-
 
     def _monitor_tasks(self):
         self._check_status()
-        threading.Timer(1,  self._check_status).start()
 
     def _check_results(self):
         self._check_length()
-        threading.Timer(1, self._check_length).start()
 
     def _get_completed_tasks(self, task_ids):
         stats = self.cli.tasks_status(task_ids)
@@ -131,6 +160,7 @@ class ResultManager(object):
         completed_ids = list(set(completed_ids).difference(self.finished_ids))
         return completed_ids
 
+    @on_running
     def _check_status(self):
         with self.train_lock:
             task_ids = self.pending_tasks.keys()
@@ -140,7 +170,10 @@ class ResultManager(object):
                 for i in self._get_completed_tasks(task_ids):
                     task_id, image_ids = self.cli.tasks_dump(i)
                     self._add_train(task_id, image_ids)
-                    self.tasks_lock.release()
+                    # updating task start time to prevent a new task
+                    # creation immediatelly after releasing lock
+                    self.time_start = time.time()
+                    self._tasks_lock.release()
 
             except (requests.exceptions.HTTPError,
                     requests.exceptions.ConnectionError,
@@ -160,7 +193,6 @@ class ResultManager(object):
         mask_ids = np.zeros(all_results.size, dtype=bool)
         mask_ids[positive_ids] = True
         positives = all_results[mask_ids]
-        # TODO: add logic to perform balanced sampling
         negatives = all_results[~mask_ids]
 
         labeled_examples = []
@@ -179,6 +211,7 @@ class ResultManager(object):
         if example:
             labeled_examples.append(example)
 
+        [self.seen_results.remove(os.path.basename(p)) for p in all_results]
         self.stub.AddLabeledExamples(self._add_examples(labeled_examples))
         self.finished_ids.add(task_id)
         time.sleep(5)
@@ -202,7 +235,7 @@ class ResultManager(object):
         self._result_check.stop()
         self._status_monitor.stop()
         for _ in range(self.total_tasks):
-            self.tasks_lock.release()
+            self._tasks_lock.release()
         # import psutil
         # current_process_pid = psutil.Process().pid
         import signal
