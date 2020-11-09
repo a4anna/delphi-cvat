@@ -45,11 +45,11 @@ export PYTHONPATH=$DELPHI:$PYTHONPATH
 ```
 +data-root/  
   +labeled/  
-    +0/ # labeled negative image ddirectory  
+    +0/ # labeled negative image directory  
       -000.jpg  
       -501.jpg  
       -*.jpg     
-    +1/ # labeled positive image ddirectory  
+    +1/ # labeled positive image directory  
       -011.jpg  
       -203.jpg  
       -*.jpg  
