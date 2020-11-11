@@ -125,9 +125,9 @@ class CvatClient(object):
     def _result_thread(self):
         while True:
             for result in self.stub.GetResults(self.search_id):
-                if (self.result_manager.tasks_lock._value == 0):
+                if (self.result_manager._tasks_lock._value == 0):
                     self.stub.PauseSearch(self.search_id)
-                    while(self.result_manager.tasks_lock._value == 0):
+                    while(self.result_manager._tasks_lock._value == 0):
                         pass
                     self.stub.RestartSearch(self.search_id)
                 if not result:
