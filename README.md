@@ -18,7 +18,7 @@ This is a developing project.
 
 ## System Architecture
 <p align="center">
-  <img src="delphi-arch.png", alt="Delphi-CVAT Architecture">
+  <img src="images/delphi-arch.png", alt="Delphi-CVAT Architecture">
 </p>
 
 
