@@ -99,6 +99,10 @@ class SVMModel(Model):
     def get_bytes(self) -> bytes:
         return pickle.dumps(self._svc)
 
+    def save_model(self) -> None:
+        with open('svc_model.pkl', 'wb') as file:
+            pickle.dump(self._svc, file)
+
     @property
     def scores_are_probabilities(self) -> bool:
         return self._probability

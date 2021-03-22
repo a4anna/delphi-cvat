@@ -375,6 +375,12 @@ class Search(DataManagerContext, ModelTrainerContext):
         self._score_and_set_model(model, self.trainers[trainer_index].trainer.should_sync_model)
         logger.info('Evaluated model in {:.3f} seconds'.format(time.time() - eval_start))
 
+    def _notify_and_save_model(self) -> None:
+        self._model.save_model()
+        with open('update_flag', 'w') as f:
+            f.write('1')
+        logger.info('SVM model gets updated to version {}, notified busEdge and saved the model as file'.format(self._model.version))
+
     def _score_and_set_model(self, model: Model, should_stage: bool) -> None:
         with self._data_manager.get_examples(ExampleSet.TEST) as test_dir:
             if len(self._nodes) > 0:
@@ -426,6 +432,7 @@ class Search(DataManagerContext, ModelTrainerContext):
             else:
                 self._model = model
                 self._model_stats = model_stats
+                self._notify_and_save_model()
                 better_old_score = None
 
             self._last_trained_version = model.version
